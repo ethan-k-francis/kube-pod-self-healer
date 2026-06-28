@@ -6,38 +6,6 @@ Step-by-step instructions for deploying, extending, and troubleshooting the self
 
 ---
 
-## Remote host setup (homelab VM)
-
-Lab VMs often lack a GitHub SSH deploy key. **Do not use** `git@github.com:...` unless you have configured one.
-
-```bash
-# One-shot: clone (HTTPS), create Kind cluster, deploy
-curl -fsSL https://raw.githubusercontent.com/ethan-k-francis/kube-pod-self-healer/main/scripts/remote-setup.sh | bash
-
-# Or from an existing clone:
-./scripts/remote-setup.sh
-```
-
-Manual equivalent:
-
-```bash
-git clone https://github.com/ethan-k-francis/kube-pod-self-healer.git
-cd kube-pod-self-healer
-make cluster-up && make deploy
-make status
-```
-
-**k3s-server example** (from cursor-vm):
-
-```bash
-ssh k3s-server
-git clone https://github.com/ethan-k-francis/kube-pod-self-healer.git
-cd kube-pod-self-healer
-make cluster-up && make deploy
-```
-
----
-
 ## Table of Contents
 
 1. [Deploying the System](#deploying-the-system)

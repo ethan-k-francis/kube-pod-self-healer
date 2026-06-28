@@ -150,11 +150,6 @@ lint-agent: ## Run Go linter
 lint-remediation: ## Run Python linter
 	cd remediation && ruff check .
 
-.PHONY: remote-setup
-remote-setup: ## Clone (HTTPS) and deploy on a host without GitHub SSH keys
-	chmod +x scripts/remote-setup.sh
-	./scripts/remote-setup.sh
-
 # -----------------------------------------------------------------------------
 # Local CI parity — run before opening PRs
 # -----------------------------------------------------------------------------
