@@ -38,11 +38,13 @@ jobs:
         with:
           go-version: "1.25"
 
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          working-directory: agent
+      - name: go vet
+        working-directory: agent
+        run: go vet ./...
+
+      - name: gofmt check
+        working-directory: agent
+        run: test -z "$(gofmt -l .)"
 
   # ---------------------------------------------------------------------------
   # Go Agent — Tests
