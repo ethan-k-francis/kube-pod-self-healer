@@ -315,4 +315,3 @@ func (w *Watcher) SetCooldown(d time.Duration) {
 	defer w.mu.Unlock()
 	w.cooldown = d
 }
-
