@@ -19,6 +19,8 @@ Think of it as a tireless operator that handles the boring, repetitive incidents
 | **Health probe** | Periodic "are you alive?" check Kubernetes (K8s) runs against your app |
 | **ImagePullBackOff** | Can't download the container image (wrong name, registry down) |
 | **Remediation** | Automated fix action (restart, scale, etc.) |
+| **GitOps** | Practice of using Git as the source of truth for what should run in the cluster |
+| **Argo CD** | Popular GitOps tool that syncs Kubernetes (K8s) state to manifests in Git |
 | **Informer** | Efficient watcher that listens for pod status changes via the Kubernetes (K8s) API |
 
 ---
@@ -60,6 +62,37 @@ flowchart LR
 5. Both detection and fix results go to your **webhook** URL.
 
 Operational details: [docs/runbook.md](docs/runbook.md).
+
+---
+
+## How is this different from Argo CD?
+
+**Argo CD** is a **GitOps** tool — it keeps the cluster aligned with what you committed to Git. It answers: *"Does what's running match the manifests in the repo?"*
+
+**Infra Autopilot** is a **runtime self-healing** tool — it answers: *"Is what's running actually healthy, and can we auto-fix known failure patterns?"*
+
+They solve different problems and work well together:
+
+| | **Argo CD** | **Infra Autopilot** |
+|---|---|---|
+| **Watches** | Cluster state vs. Git repo | Pod health status (crash loops, memory kills, failed probes) |
+| **Typical problem** | Config drift, wrong version deployed, manual edits | App crash-looping, out of memory, unhealthy despite correct manifest |
+| **Typical fix** | Sync or roll back to the Git-defined desired state | Restart pod, scale replicas, run a remediation handler |
+| **Analogy** | Ensures the recipe in the cookbook matches what's on the stove | Notices the dish is burning and turns down the heat |
+
+**Example:** Your Deployment manifest in Git says `replicas: 3` and `image: myapp:v2`. Argo CD is satisfied — the cluster matches Git. All three pods are in **CrashLoopBackOff** because `v2` has a bug. Argo CD will not fix that; the manifest is correct. Infra Autopilot detects the crash loop and triggers remediation (restart, scale, alert you).
+
+**In a real stack:**
+
+```
+Git repo  →  Argo CD deploys and syncs desired state
+                ↓
+           Pods run in the cluster
+                ↓
+     Infra Autopilot watches runtime health and auto-fixes known failures
+```
+
+Argo CD handles **deployment and drift from Git**. Infra Autopilot handles **operational incidents after deploy**. Neither replaces the other.
 
 ---
 
