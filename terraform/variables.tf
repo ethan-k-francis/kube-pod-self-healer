@@ -1,5 +1,5 @@
 # =============================================================================
-# Infra Autopilot — Terraform Variables
+# Kube Remediator — Terraform Variables
 #
 # Input variables for the Kind cluster. These let you customize the cluster
 # without editing the resource definitions directly. Override them with
@@ -9,7 +9,7 @@
 variable "cluster_name" {
   description = "Name of the Kind cluster. Also used as the kubectl context name."
   type        = string
-  default     = "autopilot"
+  default     = "kube-remediator"
 }
 
 variable "node_count" {

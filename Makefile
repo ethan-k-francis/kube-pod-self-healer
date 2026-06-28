@@ -1,15 +1,15 @@
 # =============================================================================
-# Infra Autopilot — Makefile (Full Version)
+# Kube Remediator — Makefile (Full Version)
 # Top-level build, test, deployment, and operational automation.
 # =============================================================================
 
 # Cluster name used by Kind and Terraform
-CLUSTER_NAME ?= autopilot
-# Namespace where autopilot workloads run
-NAMESPACE ?= autopilot
+CLUSTER_NAME ?= kube-remediator
+# Namespace where kube-remediator workloads run
+NAMESPACE ?= kube-remediator
 # Container image tags
-AGENT_IMAGE ?= infra-autopilot/agent:latest
-REMEDIATION_IMAGE ?= infra-autopilot/remediation:latest
+AGENT_IMAGE ?= kube-remediator/agent:latest
+REMEDIATION_IMAGE ?= kube-remediator/remediation:latest
 
 # -----------------------------------------------------------------------------
 # Cluster lifecycle — create and destroy the local Kind cluster
@@ -81,27 +81,35 @@ demo: ## Deploy crashloop demos and watch agent logs
 	kubectl logs -f -n $(NAMESPACE) -l app=health-agent
 
 # -----------------------------------------------------------------------------
-# Logs — tail logs from running workloads
+# Logs — recent or follow-mode output from running workloads
 # -----------------------------------------------------------------------------
 
 .PHONY: logs
 logs: agent-logs ## Alias for agent-logs
 
 .PHONY: agent-logs
-agent-logs: ## Tail health agent logs
+agent-logs: ## Show recent health agent logs (last 100 lines)
+	kubectl logs --tail=100 -n $(NAMESPACE) -l app=health-agent
+
+.PHONY: agent-logs-follow
+agent-logs-follow: ## Follow health agent logs (Ctrl+C to stop; exit code 130 is normal)
 	kubectl logs -f -n $(NAMESPACE) -l app=health-agent
 
 .PHONY: remediation-logs
-remediation-logs: ## Tail remediation service logs
+remediation-logs: ## Show recent remediation service logs (last 100 lines)
+	kubectl logs --tail=100 -n $(NAMESPACE) -l app=remediation-service
+
+.PHONY: remediation-logs-follow
+remediation-logs-follow: ## Follow remediation logs (Ctrl+C to stop; exit code 130 is normal)
 	kubectl logs -f -n $(NAMESPACE) -l app=remediation-service
 
 # -----------------------------------------------------------------------------
-# Status — show the current state of autopilot workloads
+# Status — show the current state of kube-remediator workloads
 # -----------------------------------------------------------------------------
 
 .PHONY: status
-status: ## Show pod health and status in the autopilot namespace
-	@echo "=== Autopilot Pods ==="
+status: ## Show pod health and status in the kube-remediator namespace
+	@echo "=== Kube Remediator Pods ==="
 	kubectl get pods -n $(NAMESPACE) -o wide
 	@echo ""
 	@echo "=== Pod Health Summary ==="

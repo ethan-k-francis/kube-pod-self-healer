@@ -18,10 +18,10 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: health-agent
-  namespace: autopilot
+  namespace: kube-remediator
   labels:
     app: health-agent
-    app.kubernetes.io/part-of: infra-autopilot
+    app.kubernetes.io/part-of: kube-remediator
 
 ---
 # ClusterRole — defines what the agent is allowed to do cluster-wide.
@@ -33,7 +33,7 @@ metadata:
   name: health-agent
   labels:
     app: health-agent
-    app.kubernetes.io/part-of: infra-autopilot
+    app.kubernetes.io/part-of: kube-remediator
 rules:
   # Pod access — the core of what the agent does. Get/list/watch for
   # the informer, delete for remediation (restart by deletion).
@@ -74,7 +74,7 @@ metadata:
   name: health-agent
   labels:
     app: health-agent
-    app.kubernetes.io/part-of: infra-autopilot
+    app.kubernetes.io/part-of: kube-remediator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -82,4 +82,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: health-agent
-    namespace: autopilot
+    namespace: kube-remediator

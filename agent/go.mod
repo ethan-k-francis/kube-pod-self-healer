@@ -1,4 +1,4 @@
-module github.com/ethan-k-francis/infra-autopilot/agent
+module github.com/ethan-k-francis/kube-remediator/agent
 
 go 1.25.0
 

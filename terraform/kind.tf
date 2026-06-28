@@ -1,5 +1,5 @@
 # =============================================================================
-# Infra Autopilot — Kind Cluster Resource
+# Kube Remediator — Kind Cluster Resource
 #
 # Defines the Kind cluster with a control plane and configurable worker nodes.
 # Extra port mappings expose NodePort services to the host machine, which is
@@ -7,7 +7,7 @@
 # local development environment.
 # =============================================================================
 
-resource "kind_cluster" "autopilot" {
+resource "kind_cluster" "kube_remediator" {
   name           = var.cluster_name
   node_image     = "kindest/node:${var.k8s_version}"
   wait_for_ready = true

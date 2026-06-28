@@ -1,5 +1,5 @@
 # =============================================================================
-# Infra Autopilot — Remediation Service Dockerfile
+# Kube Remediator — Remediation Service Dockerfile
 #
 # Multi-stage isn't needed here (no compilation step), but we use a slim base
 # image and follow container best practices:
@@ -12,9 +12,9 @@
 FROM python:3.12-slim
 
 # Metadata labels following OCI image spec conventions
-LABEL org.opencontainers.image.title="infra-autopilot-remediation"
+LABEL org.opencontainers.image.title="kube-remediator-remediation"
 LABEL org.opencontainers.image.description="Automated pod remediation service"
-LABEL org.opencontainers.image.source="https://github.com/ethan-k-francis/infra-autopilot"
+LABEL org.opencontainers.image.source="https://github.com/ethan-k-francis/kube-remediator"
 
 # Set working directory inside the container
 WORKDIR /app

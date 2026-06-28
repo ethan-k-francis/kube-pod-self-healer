@@ -22,7 +22,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ethan-k-francis/infra-autopilot/agent/internal/watcher"
+	"github.com/ethan-k-francis/kube-remediator/agent/internal/watcher"
 )
 
 // Payload is the JSON body sent to the webhook endpoint. It includes the
@@ -71,7 +71,7 @@ func (n *Notifier) NotifyDetection(ctx context.Context, event watcher.PodHealthE
 
 	payload := Payload{
 		Text: fmt.Sprintf(
-			"[Autopilot] Detected %s: pod %s/%s (%s) — restarts: %d",
+			"[KubeRemediator] Detected %s: pod %s/%s (%s) — restarts: %d",
 			event.FailureType,
 			event.Namespace,
 			event.PodName,
@@ -103,7 +103,7 @@ func (n *Notifier) NotifyRemediation(ctx context.Context, event watcher.PodHealt
 
 	payload := Payload{
 		Text: fmt.Sprintf(
-			"[Autopilot] Remediation %s: %s on pod %s/%s — %s",
+			"[KubeRemediator] Remediation %s: %s on pod %s/%s — %s",
 			statusIcon,
 			action,
 			event.Namespace,
