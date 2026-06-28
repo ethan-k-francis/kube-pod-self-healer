@@ -1,5 +1,5 @@
 # =============================================================================
-# Kube Remediator — Terraform Main Configuration
+# Kube Pod Self-Healer — Terraform Main Configuration
 #
 # This is the root Terraform configuration. It sets the required Terraform
 # version and configures local state storage. For a production system you'd

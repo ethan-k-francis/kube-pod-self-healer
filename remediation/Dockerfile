@@ -1,5 +1,5 @@
 # =============================================================================
-# Kube Remediator — Remediation Service Dockerfile
+# Kube Pod Self-Healer — Remediation Service Dockerfile
 #
 # Multi-stage isn't needed here (no compilation step), but we use a slim base
 # image and follow container best practices:
@@ -12,9 +12,9 @@
 FROM python:3.12-slim
 
 # Metadata labels following OCI image spec conventions
-LABEL org.opencontainers.image.title="kube-remediator-remediation"
+LABEL org.opencontainers.image.title="kube-pod-self-healer-remediation"
 LABEL org.opencontainers.image.description="Automated pod remediation service"
-LABEL org.opencontainers.image.source="https://github.com/ethan-k-francis/kube-remediator"
+LABEL org.opencontainers.image.source="https://github.com/ethan-k-francis/kube-pod-self-healer"
 
 # Set working directory inside the container
 WORKDIR /app

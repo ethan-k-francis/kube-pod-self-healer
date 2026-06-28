@@ -3,7 +3,7 @@
 #
 # These deployments create pods that WILL fail in predictable ways. They exist
 # to test the health agent's detection and the remediation service's response.
-# Deploy these after the kube-remediator system is running to see it in action.
+# Deploy these after the kube-pod-self-healer system is running to see it in action.
 # =============================================================================
 
 ---
@@ -18,7 +18,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: crashloop-demo
-  namespace: kube-remediator
+  namespace: kube-pod-self-healer
   labels:
     app: crashloop-demo
     purpose: failure-simulation
@@ -62,7 +62,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: probe-failure-demo
-  namespace: kube-remediator
+  namespace: kube-pod-self-healer
   labels:
     app: probe-failure-demo
     purpose: failure-simulation

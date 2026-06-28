@@ -1,4 +1,4 @@
-// Package main is the entry point for the Kube Remediator health agent.
+// Package main is the entry point for the Kube Pod Self-Healer health agent.
 //
 // This is the fully integrated version that connects:
 //   - Pod watcher (detects failures via K8s informers)
@@ -22,15 +22,15 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/ethan-k-francis/kube-remediator/agent/internal/config"
-	"github.com/ethan-k-francis/kube-remediator/agent/internal/remediation"
-	"github.com/ethan-k-francis/kube-remediator/agent/internal/watcher"
-	"github.com/ethan-k-francis/kube-remediator/agent/internal/webhook"
+	"github.com/ethan-k-francis/kube-pod-self-healer/agent/internal/config"
+	"github.com/ethan-k-francis/kube-pod-self-healer/agent/internal/remediation"
+	"github.com/ethan-k-francis/kube-pod-self-healer/agent/internal/watcher"
+	"github.com/ethan-k-francis/kube-pod-self-healer/agent/internal/webhook"
 )
 
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile)
-	log.Println("[main] starting kube-remediator health agent")
+	log.Println("[main] starting kube-pod-self-healer health agent")
 
 	// --- Load Configuration ---
 	cfg, err := config.Load()
@@ -49,7 +49,7 @@ func main() {
 	// --- Initialize Remediation Client ---
 	// The remediation client sends detected failures to the Python service
 	// for automated response. It runs as a separate K8s service in the
-	// kube-remediator namespace.
+	// kube-pod-self-healer namespace.
 	remClient := remediation.NewClient(cfg.RemediationURL)
 	log.Printf("[main] remediation client: url=%s", cfg.RemediationURL)
 

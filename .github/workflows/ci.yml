@@ -1,5 +1,5 @@
 # =============================================================================
-# Kube Remediator — CI Pipeline
+# Kube Pod Self-Healer — CI Pipeline
 #
 # Runs on every push to main and on pull requests. The pipeline validates
 # all components: Go agent, Python remediation service, Docker builds, and
@@ -150,12 +150,12 @@ jobs:
 
       - name: Build agent image
         run: |
-          docker build -t kube-remediator/agent:ci \
+          docker build -t kube-pod-self-healer/agent:ci \
             -f agent/Dockerfile agent/
 
       - name: Build remediation image
         run: |
-          docker build -t kube-remediator/remediation:ci \
+          docker build -t kube-pod-self-healer/remediation:ci \
             remediation/
 
   # ---------------------------------------------------------------------------

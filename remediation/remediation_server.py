@@ -1,5 +1,5 @@
 """
-Kube Remediator — Remediation Service
+Kube Pod Self-Healer — Remediation Service
 
 FastAPI server that receives pod failure events from the Go health agent and
 routes them to the appropriate remediation handler. Each handler implements a
@@ -40,7 +40,7 @@ logger = logging.getLogger("remediation")
 # FastAPI Application
 # ---------------------------------------------------------------------------
 app = FastAPI(
-    title="Kube Remediator Remediation Service",
+    title="Kube Pod Self-Healer Remediation Service",
     description="Receives pod failure events and executes automated remediation",
     version="1.0.0",
 )

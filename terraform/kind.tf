@@ -1,5 +1,5 @@
 # =============================================================================
-# Kube Remediator — Kind Cluster Resource
+# Kube Pod Self-Healer — Kind Cluster Resource
 #
 # Defines the Kind cluster with a control plane and configurable worker nodes.
 # Extra port mappings expose NodePort services to the host machine, which is

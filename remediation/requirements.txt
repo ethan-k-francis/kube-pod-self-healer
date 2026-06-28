@@ -1,5 +1,5 @@
 # =============================================================================
-# Kube Remediator — Remediation Service Dependencies
+# Kube Pod Self-Healer — Remediation Service Dependencies
 #
 # Pin minimum versions for reproducibility. The kubernetes client version
 # should match the cluster version (v31 maps to K8s 1.31.x).
