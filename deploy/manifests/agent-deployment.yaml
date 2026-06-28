@@ -15,10 +15,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: health-agent
-  namespace: autopilot
+  namespace: kube-remediator
   labels:
     app: health-agent
-    app.kubernetes.io/part-of: infra-autopilot
+    app.kubernetes.io/part-of: kube-remediator
     app.kubernetes.io/component: agent
 spec:
   # Single replica — the agent uses informers which are singleton by design.
@@ -31,21 +31,21 @@ spec:
     metadata:
       labels:
         app: health-agent
-        app.kubernetes.io/part-of: infra-autopilot
+        app.kubernetes.io/part-of: kube-remediator
     spec:
       # Use the dedicated service account with RBAC permissions
       serviceAccountName: health-agent
 
       containers:
         - name: agent
-          image: infra-autopilot/agent:latest
+          image: kube-remediator/agent:latest
           # Never pull from registry — we load images directly into Kind
           imagePullPolicy: Never
 
           env:
-            # Watch only the autopilot namespace. Set to "" for all namespaces.
+            # Watch only the kube-remediator namespace. Set to "" for all namespaces.
             - name: NAMESPACE
-              value: "autopilot"
+              value: "kube-remediator"
 
             # How often the informer resyncs (belt-and-suspenders for missed events)
             - name: CHECK_INTERVAL
@@ -54,7 +54,7 @@ spec:
             # Internal K8s service DNS name for the remediation service.
             # Kubernetes DNS resolves this to the ClusterIP of the Service.
             - name: REMEDIATION_URL
-              value: "http://remediation-service.autopilot.svc.cluster.local:8000"
+              value: "http://remediation-service.kube-remediator.svc.cluster.local:8000"
 
             # Webhook URL for notifications (set to your Slack/Discord webhook)
             # Leave empty to disable notifications

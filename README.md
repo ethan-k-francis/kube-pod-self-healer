@@ -1,4 +1,4 @@
-# Infra Autopilot
+# Kube Remediator
 
 **A self-healing Kubernetes demo — detect broken pods and fix common problems automatically**
 
@@ -69,18 +69,18 @@ Operational details: [docs/runbook.md](docs/runbook.md).
 
 **Argo CD** is a **GitOps** tool — it keeps the cluster aligned with what you committed to Git. It answers: *"Does what's running match the manifests in the repo?"*
 
-**Infra Autopilot** is a **runtime self-healing** tool — it answers: *"Is what's running actually healthy, and can we auto-fix known failure patterns?"*
+**Kube Remediator** is a **runtime self-healing** tool — it answers: *"Is what's running actually healthy, and can we auto-fix known failure patterns?"*
 
 They solve different problems and work well together:
 
-| | **Argo CD** | **Infra Autopilot** |
+| | **Argo CD** | **Kube Remediator** |
 |---|---|---|
 | **Watches** | Cluster state vs. Git repo | Pod health status (crash loops, memory kills, failed probes) |
 | **Typical problem** | Config drift, wrong version deployed, manual edits | App crash-looping, out of memory, unhealthy despite correct manifest |
 | **Typical fix** | Sync or roll back to the Git-defined desired state | Restart pod, scale replicas, run a remediation handler |
 | **Analogy** | Ensures the recipe in the cookbook matches what's on the stove | Notices the dish is burning and turns down the heat |
 
-**Example:** Your Deployment manifest in Git says `replicas: 3` and `image: myapp:v2`. Argo CD is satisfied — the cluster matches Git. All three pods are in **CrashLoopBackOff** because `v2` has a bug. Argo CD will not fix that; the manifest is correct. Infra Autopilot detects the crash loop and triggers remediation (restart, scale, alert you).
+**Example:** Your Deployment manifest in Git says `replicas: 3` and `image: myapp:v2`. Argo CD is satisfied — the cluster matches Git. All three pods are in **CrashLoopBackOff** because `v2` has a bug. Argo CD will not fix that; the manifest is correct. Kube Remediator detects the crash loop and triggers remediation (restart, scale, alert you).
 
 **In a real stack:**
 
@@ -89,10 +89,10 @@ Git repo  →  Argo CD deploys and syncs desired state
                 ↓
            Pods run in the cluster
                 ↓
-     Infra Autopilot watches runtime health and auto-fixes known failures
+     Kube Remediator watches runtime health and auto-fixes known failures
 ```
 
-Argo CD handles **deployment and drift from Git**. Infra Autopilot handles **operational incidents after deploy**. Neither replaces the other.
+Argo CD handles **deployment and drift from Git**. Kube Remediator handles **operational incidents after deploy**. Neither replaces the other.
 
 ---
 
@@ -129,7 +129,7 @@ make cluster-down
 ## Project layout
 
 ```
-infra-autopilot/
+kube-remediator/
 ├── agent/                    # Go health monitoring agent
 ├── remediation/              # Python remediation service + handlers
 ├── terraform/                # Kind cluster provisioning

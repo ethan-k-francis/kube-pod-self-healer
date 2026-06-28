@@ -1,5 +1,5 @@
 # =============================================================================
-# Infra Autopilot — Terraform Outputs
+# Kube Remediator — Terraform Outputs
 #
 # Outputs expose values from the Terraform state so they can be consumed by
 # scripts, CI pipelines, or other Terraform modules. After `terraform apply`,
@@ -8,15 +8,15 @@
 
 output "cluster_name" {
   description = "The name of the Kind cluster"
-  value       = kind_cluster.autopilot.name
+  value       = kind_cluster.kube_remediator.name
 }
 
 output "kubeconfig_path" {
   description = "Path to the generated kubeconfig file for the cluster"
-  value       = kind_cluster.autopilot.kubeconfig_path
+  value       = kind_cluster.kube_remediator.kubeconfig_path
 }
 
 output "endpoint" {
   description = "The API server endpoint of the Kind cluster"
-  value       = kind_cluster.autopilot.endpoint
+  value       = kind_cluster.kube_remediator.endpoint
 }

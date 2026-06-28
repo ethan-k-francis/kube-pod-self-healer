@@ -3,7 +3,7 @@
 #
 # The Python FastAPI remediation server runs as a K8s Deployment with a
 # ClusterIP Service. The health agent communicates with it via the internal
-# DNS name: remediation-service.autopilot.svc.cluster.local
+# DNS name: remediation-service.kube-remediator.svc.cluster.local
 #
 # The remediation service needs the same RBAC permissions as the agent
 # (pod delete, deployment scale, pod exec) because it's the one actually
@@ -15,10 +15,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: remediation-service
-  namespace: autopilot
+  namespace: kube-remediator
   labels:
     app: remediation-service
-    app.kubernetes.io/part-of: infra-autopilot
+    app.kubernetes.io/part-of: kube-remediator
     app.kubernetes.io/component: remediation
 spec:
   replicas: 1
@@ -29,7 +29,7 @@ spec:
     metadata:
       labels:
         app: remediation-service
-        app.kubernetes.io/part-of: infra-autopilot
+        app.kubernetes.io/part-of: kube-remediator
     spec:
       # Reuse the health-agent service account — the remediation service
       # needs the same K8s API permissions (delete pods, scale deployments)
@@ -37,7 +37,7 @@ spec:
 
       containers:
         - name: remediation
-          image: infra-autopilot/remediation:latest
+          image: kube-remediator/remediation:latest
           imagePullPolicy: Never
 
           ports:
@@ -80,15 +80,15 @@ spec:
 ---
 # ClusterIP Service — makes the remediation server reachable via DNS
 # within the cluster. The health agent connects to:
-#   http://remediation-service.autopilot.svc.cluster.local:8000
+#   http://remediation-service.kube-remediator.svc.cluster.local:8000
 apiVersion: v1
 kind: Service
 metadata:
   name: remediation-service
-  namespace: autopilot
+  namespace: kube-remediator
   labels:
     app: remediation-service
-    app.kubernetes.io/part-of: infra-autopilot
+    app.kubernetes.io/part-of: kube-remediator
 spec:
   type: ClusterIP
   selector:

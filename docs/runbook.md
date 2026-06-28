@@ -1,4 +1,4 @@
-# Infra Autopilot — Operator Guide
+# Kube Remediator — Operator Guide
 
 Step-by-step instructions for deploying, extending, and troubleshooting the self-healing system.
 
@@ -34,7 +34,7 @@ Step-by-step instructions for deploying, extending, and troubleshooting the self
 make cluster-up
 ```
 
-Creates a cluster named `autopilot` with 1 control-plane node and 2 worker nodes.
+Creates a cluster named `kube-remediator` with 1 control-plane node and 2 worker nodes.
 
 ### Step 2: Build and deploy
 
@@ -166,16 +166,16 @@ Any URL that accepts `POST` with JavaScript Object Notation (JSON) works. Exampl
 
 ```json
 {
-  "text": "[Autopilot] Detected CrashLoopBackOff: pod autopilot/my-pod...",
+  "text": "[KubeRemediator] Detected CrashLoopBackOff: pod kube-remediator/my-pod...",
   "event_id": "my-pod-main-1708000000000",
   "failure_type": "CrashLoopBackOff",
   "pod_name": "my-pod-abc123",
-  "namespace": "autopilot",
+  "namespace": "kube-remediator",
   "message": "container \"main\" in CrashLoopBackOff (restarts: 5)",
   "timestamp": "2026-02-22T12:00:00Z",
   "remediation_action": "restart",
   "remediation_success": true,
-  "remediation_message": "successfully deleted pod autopilot/my-pod-abc123"
+  "remediation_message": "successfully deleted pod kube-remediator/my-pod-abc123"
 }
 ```
 
@@ -186,16 +186,20 @@ Any URL that accepts `POST` with JavaScript Object Notation (JSON) works. Exampl
 ### Live logs
 
 ```bash
-make agent-logs          # Health agent
-make remediation-logs    # Remediation service
+make agent-logs              # Last 100 lines from health agent
+make remediation-logs        # Last 100 lines from remediation service
+make agent-logs-follow       # Stream health agent (Ctrl+C to stop)
+make remediation-logs-follow # Stream remediation service (Ctrl+C to stop)
 ```
+
+`make remediation-logs` used to run `kubectl logs -f`, which exits with Make error 1 when you press Ctrl+C — that is normal, not a service failure.
 
 ### Recent fix history
 
 The remediation service exposes past actions at `GET /history`:
 
 ```bash
-kubectl port-forward -n autopilot svc/remediation-service 8000:8000
+kubectl port-forward -n kube-remediator svc/remediation-service 8000:8000
 curl http://localhost:8000/history | python -m json.tool
 ```
 
@@ -224,21 +228,21 @@ make status
 **Likely cause:** Wrong Role-Based Access Control (RBAC) permissions or remediation service unreachable.
 
 ```bash
-kubectl logs -n autopilot -l app=health-agent --previous
-kubectl describe pod -n autopilot -l app=health-agent
+kubectl logs -n kube-remediator -l app=health-agent --previous
+kubectl describe pod -n kube-remediator -l app=health-agent
 ```
 
 Check:
-- ServiceAccount exists: `kubectl get sa -n autopilot health-agent`
+- ServiceAccount exists: `kubectl get sa -n kube-remediator health-agent`
 - ClusterRoleBinding exists: `kubectl get clusterrolebinding health-agent`
-- Remediation service is running: `kubectl get pod -n autopilot -l app=remediation-service`
+- Remediation service is running: `kubectl get pod -n kube-remediator -l app=remediation-service`
 
 ### Remediation service returns 422
 
 **Likely cause:** JSON from the Go agent doesn't match the Python event model (Pydantic validation).
 
 ```bash
-kubectl logs -n autopilot -l app=remediation-service
+kubectl logs -n kube-remediator -l app=remediation-service
 ```
 
 Compare field names in the agent's event struct vs. the Pydantic model in the remediation service.
@@ -257,8 +261,8 @@ Check:
 **Likely cause:** Insufficient Role-Based Access Control (RBAC) permissions, or the remediation service can't reach the Kubernetes (K8s) API.
 
 ```bash
-kubectl auth can-i delete pods -n autopilot --as=system:serviceaccount:autopilot:health-agent
-kubectl auth can-i patch deployments -n autopilot --as=system:serviceaccount:autopilot:health-agent
+kubectl auth can-i delete pods -n kube-remediator --as=system:serviceaccount:kube-remediator:health-agent
+kubectl auth can-i patch deployments -n kube-remediator --as=system:serviceaccount:kube-remediator:health-agent
 ```
 
 ### Images not loading into Kind
@@ -266,8 +270,8 @@ kubectl auth can-i patch deployments -n autopilot --as=system:serviceaccount:aut
 **Likely cause:** Image name in `docker build` doesn't match what's in the Deployment manifest.
 
 ```bash
-docker images | grep infra-autopilot
-kind load docker-image infra-autopilot/agent:latest --name autopilot
+docker images | grep kube-remediator
+kind load docker-image kube-remediator/agent:latest --name kube-remediator
 ```
 
 The Deployment must use `imagePullPolicy: Never` so Kind uses the locally loaded image instead of pulling from a registry.
@@ -280,6 +284,6 @@ Check:
 - Agent logs show `[webhook] notification sent` or an error
 
 ```bash
-kubectl run -n autopilot test-curl --rm -i --restart=Never --image=curlimages/curl -- \
+kubectl run -n kube-remediator test-curl --rm -i --restart=Never --image=curlimages/curl -- \
   curl -s -o /dev/null -w "%{http_code}" https://hooks.slack.com/services/YOUR/WEBHOOK/URL
 ```

@@ -1,5 +1,5 @@
 # =============================================================================
-# Infra Autopilot — Provider Configuration
+# Kube Remediator — Provider Configuration
 #
 # Declares the Kind provider, which lets Terraform manage Kind clusters as
 # native resources. The tehcyx/kind provider wraps the Kind CLI into a
