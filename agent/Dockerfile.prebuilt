@@ -1,4 +1,0 @@
-FROM gcr.io/distroless/static-debian12:nonroot
-WORKDIR /app
-COPY health-agent .
-ENTRYPOINT ["./health-agent"]
