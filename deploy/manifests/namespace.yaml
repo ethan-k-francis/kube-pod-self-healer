@@ -1,0 +1,16 @@
+# =============================================================================
+# Autopilot Namespace
+#
+# All infra-autopilot workloads (health agent, remediation service, demo pods)
+# run in this dedicated namespace. Namespaces provide resource isolation and
+# make it easy to clean up everything with `kubectl delete ns autopilot`.
+# =============================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: autopilot
+  labels:
+    # Labels make it easy to query and filter resources
+    app.kubernetes.io/part-of: infra-autopilot
+    purpose: self-healing-demo

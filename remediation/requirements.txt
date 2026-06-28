@@ -1,0 +1,11 @@
+# =============================================================================
+# Infra Autopilot — Remediation Service Dependencies
+#
+# Pin minimum versions for reproducibility. The kubernetes client version
+# should match the cluster version (v31 maps to K8s 1.31.x).
+# =============================================================================
+
+fastapi>=0.115.0
+uvicorn>=0.32.0
+kubernetes>=31.0.0
+pydantic>=2.9.0

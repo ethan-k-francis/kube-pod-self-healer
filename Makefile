@@ -1,6 +1,6 @@
 # =============================================================================
-# Infra Autopilot — Makefile
-# Top-level build, test, and deployment automation.
+# Infra Autopilot — Makefile (Full Version)
+# Top-level build, test, deployment, and operational automation.
 # =============================================================================
 
 # Cluster name used by Kind and Terraform
@@ -47,7 +47,7 @@ test: test-agent test-remediation ## Run all tests
 
 .PHONY: test-agent
 test-agent: ## Run Go agent tests
-	cd agent && go test ./...
+	cd agent && go test -race ./...
 
 .PHONY: test-remediation
 test-remediation: ## Run Python remediation tests
@@ -67,15 +67,54 @@ deploy: build ## Build images, load into Kind, and apply manifests
 	kubectl apply -f deploy/manifests/agent-deployment.yaml
 
 # -----------------------------------------------------------------------------
+# Demo — deploy broken workloads and watch the agent remediate them
+# -----------------------------------------------------------------------------
+
+.PHONY: demo
+demo: ## Deploy crashloop demos and watch agent logs
+	@echo "=== Deploying demo workloads ==="
+	kubectl apply -f deploy/manifests/crashloop-demo.yaml
+	@echo ""
+	@echo "=== Watching health agent logs (Ctrl+C to stop) ==="
+	@echo "Wait ~30s for CrashLoopBackOff to trigger..."
+	@echo ""
+	kubectl logs -f -n $(NAMESPACE) -l app=health-agent
+
+# -----------------------------------------------------------------------------
 # Logs — tail logs from running workloads
 # -----------------------------------------------------------------------------
 
 .PHONY: logs
-logs: ## Tail logs from the health agent
+logs: agent-logs ## Alias for agent-logs
+
+.PHONY: agent-logs
+agent-logs: ## Tail health agent logs
 	kubectl logs -f -n $(NAMESPACE) -l app=health-agent
 
+.PHONY: remediation-logs
+remediation-logs: ## Tail remediation service logs
+	kubectl logs -f -n $(NAMESPACE) -l app=remediation-service
+
 # -----------------------------------------------------------------------------
-# Clean — remove build artifacts
+# Status — show the current state of autopilot workloads
+# -----------------------------------------------------------------------------
+
+.PHONY: status
+status: ## Show pod health and status in the autopilot namespace
+	@echo "=== Autopilot Pods ==="
+	kubectl get pods -n $(NAMESPACE) -o wide
+	@echo ""
+	@echo "=== Pod Health Summary ==="
+	@kubectl get pods -n $(NAMESPACE) -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.phase}{"\t"}{range .status.containerStatuses[*]}{.name}: ready={.ready}, restarts={.restartCount}{" "}{end}{"\n"}{end}' 2>/dev/null || echo "No pods found"
+	@echo ""
+	@echo "=== Services ==="
+	kubectl get svc -n $(NAMESPACE)
+	@echo ""
+	@echo "=== Recent Events ==="
+	kubectl get events -n $(NAMESPACE) --sort-by='.lastTimestamp' | tail -10
+
+# -----------------------------------------------------------------------------
+# Clean — remove build artifacts and demo workloads
 # -----------------------------------------------------------------------------
 
 .PHONY: clean
@@ -84,28 +123,44 @@ clean: ## Remove build artifacts and temp files
 	rm -rf agent/bin/
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 
+.PHONY: clean-demo
+clean-demo: ## Remove demo workloads from the cluster
+	kubectl delete -f deploy/manifests/crashloop-demo.yaml --ignore-not-found
+
 # -----------------------------------------------------------------------------
-# Local CI parity checks — run before opening PRs
+# Lint — run linters for all components
 # -----------------------------------------------------------------------------
 
 .PHONY: lint
-lint: ## Run pre-commit hooks across the repository
+lint: lint-agent lint-remediation ## Run all linters
+
+.PHONY: lint-agent
+lint-agent: ## Run Go linter
+	cd agent && golangci-lint run ./...
+
+.PHONY: lint-remediation
+lint-remediation: ## Run Python linter
+	cd remediation && ruff check .
+
+# -----------------------------------------------------------------------------
+# Local CI parity — run before opening PRs
+# -----------------------------------------------------------------------------
+
+.PHONY: lint-ci ci-security pr-commit-check ci
+lint-ci: ## Run pre-commit hooks across the repository
 	pre-commit run --all-files
 
-.PHONY: ci-security
 ci-security: ## Run local security scan parity (Trivy)
 	trivy fs --severity HIGH,CRITICAL --exit-code 1 .
 
-.PHONY: pr-attribution-check
-pr-attribution-check: ## Check branch commits and optional PR text for forbidden attribution
-	@chmod +x .github/scripts/attribution-guard.sh
-	@.github/scripts/attribution-guard.sh \
+pr-commit-check: ## Check branch commits for forbidden commit footers
+	@chmod +x .github/scripts/commit-message-lint.sh
+	@.github/scripts/commit-message-lint.sh \
 		--base-ref origin/main \
 		$${PR_TITLE:+--title "$${PR_TITLE}"} \
 		$${PR_BODY_FILE:+--body-file "$${PR_BODY_FILE}"}
 
-.PHONY: ci
-ci: lint ci-security pr-attribution-check ## Run local CI parity checks before PR
+ci: lint-ci ci-security pr-commit-check ## Run local CI checks before PR
 	@echo "Local CI checks passed."
 
 # -----------------------------------------------------------------------------
