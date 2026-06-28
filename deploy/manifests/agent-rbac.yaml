@@ -1,0 +1,85 @@
+# =============================================================================
+# Health Agent RBAC Configuration
+#
+# The health agent needs specific permissions to watch pods, read deployments,
+# and perform remediation actions. RBAC (Role-Based Access Control) ensures
+# the agent has exactly the permissions it needs — nothing more.
+#
+# We use ClusterRole + ClusterRoleBinding (not namespaced Role) because the
+# agent may need to watch pods across namespaces. For a tighter security
+# posture, you could use a namespaced Role if the agent only watches one
+# namespace.
+# =============================================================================
+
+---
+# ServiceAccount — the identity the agent pod runs as.
+# Kubernetes automatically mounts a token for this account into the pod.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: health-agent
+  namespace: autopilot
+  labels:
+    app: health-agent
+    app.kubernetes.io/part-of: infra-autopilot
+
+---
+# ClusterRole — defines what the agent is allowed to do cluster-wide.
+# Follows the principle of least privilege: only the permissions the agent
+# actually needs for watching and remediating.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: health-agent
+  labels:
+    app: health-agent
+    app.kubernetes.io/part-of: infra-autopilot
+rules:
+  # Pod access — the core of what the agent does. Get/list/watch for
+  # the informer, delete for remediation (restart by deletion).
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "delete"]
+
+  # Pod exec — needed by the clear_cache handler to run commands inside
+  # running containers.
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+
+  # Deployment access — needed by the scale handler to read current
+  # replica count and patch it. Also used to resolve pod ownership.
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "update", "patch"]
+
+  # ReplicaSet read — needed to resolve the Deployment -> ReplicaSet -> Pod
+  # ownership chain when determining which Deployment owns a failing pod.
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list"]
+
+  # Event creation — the agent emits Kubernetes events for audit logging.
+  # These appear in `kubectl describe pod` and are useful for debugging.
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+
+---
+# ClusterRoleBinding — connects the ServiceAccount to the ClusterRole.
+# This grants the health-agent ServiceAccount all permissions defined above.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: health-agent
+  labels:
+    app: health-agent
+    app.kubernetes.io/part-of: infra-autopilot
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: health-agent
+subjects:
+  - kind: ServiceAccount
+    name: health-agent
+    namespace: autopilot

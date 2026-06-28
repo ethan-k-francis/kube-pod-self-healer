@@ -1,0 +1,137 @@
+# =============================================================================
+# Demo Workloads — Deliberately Broken Pods
+#
+# These deployments create pods that WILL fail in predictable ways. They exist
+# to test the health agent's detection and the remediation service's response.
+# Deploy these after the autopilot system is running to see it in action.
+# =============================================================================
+
+---
+# -----------------------------------------------------------------------------
+# CrashLoopBackOff Demo
+#
+# This pod runs busybox with a command that immediately exits with an error.
+# Kubernetes will restart it, and after a few restarts the container enters
+# CrashLoopBackOff — the exact state our health agent watches for.
+# -----------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crashloop-demo
+  namespace: autopilot
+  labels:
+    app: crashloop-demo
+    purpose: failure-simulation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crashloop-demo
+  template:
+    metadata:
+      labels:
+        app: crashloop-demo
+        purpose: failure-simulation
+    spec:
+      containers:
+        - name: crasher
+          # busybox is a tiny image — fast to pull, minimal resources
+          image: busybox:1.36
+          # Exit with code 1 immediately. The kubelet will restart this
+          # container, backing off exponentially (10s, 20s, 40s, ...) until
+          # it enters CrashLoopBackOff after ~5 restarts.
+          command: ["sh", "-c", "echo 'Simulating crash...' && exit 1"]
+          resources:
+            limits:
+              memory: "32Mi"
+              cpu: "50m"
+            requests:
+              memory: "16Mi"
+              cpu: "10m"
+
+---
+# -----------------------------------------------------------------------------
+# Liveness Probe Failure Demo
+#
+# This pod runs an HTTP server that returns 200 OK for the first N requests,
+# then starts returning 500. Once the liveness probe fails consecutively,
+# the kubelet kills the container — triggering a restart that the health
+# agent will detect.
+# -----------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: probe-failure-demo
+  namespace: autopilot
+  labels:
+    app: probe-failure-demo
+    purpose: failure-simulation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: probe-failure-demo
+  template:
+    metadata:
+      labels:
+        app: probe-failure-demo
+        purpose: failure-simulation
+    spec:
+      containers:
+        - name: flaky-server
+          # python:3.12-slim gives us a Python runtime to run our inline
+          # HTTP server without building a custom image
+          image: python:3.12-slim
+          # Inline Python HTTP server that becomes unhealthy after 30 seconds.
+          # The liveness probe hits /healthz — once it starts returning 500,
+          # Kubernetes will restart the container after failureThreshold failures.
+          command:
+            - python3
+            - "-c"
+            - |
+              import http.server
+              import time
+
+              start = time.time()
+              HEALTHY_DURATION = 30  # seconds before going unhealthy
+
+              class Handler(http.server.BaseHTTPRequestHandler):
+                  def do_GET(self):
+                      elapsed = time.time() - start
+                      if self.path == "/healthz":
+                          if elapsed < HEALTHY_DURATION:
+                              self.send_response(200)
+                              self.end_headers()
+                              self.wfile.write(b"ok")
+                          else:
+                              self.send_response(500)
+                              self.end_headers()
+                              self.wfile.write(b"unhealthy after timeout")
+                      else:
+                          self.send_response(200)
+                          self.end_headers()
+                          self.wfile.write(b"probe-failure-demo")
+
+                  def log_message(self, format, *args):
+                      pass  # suppress access logs
+
+              http.server.HTTPServer(("", 8080), Handler).serve_forever()
+          ports:
+            - containerPort: 8080
+          # Liveness probe — Kubernetes uses this to determine if the container
+          # is alive. Three consecutive failures (3 * 10s = 30s of failures)
+          # triggers a container restart.
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            limits:
+              memory: "64Mi"
+              cpu: "100m"
+            requests:
+              memory: "32Mi"
+              cpu: "50m"

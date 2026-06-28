@@ -1,0 +1,33 @@
+# =============================================================================
+# Kind Cluster Configuration
+#
+# Kind (Kubernetes IN Docker) runs a conformant K8s cluster using Docker
+# containers as "nodes". This config defines the cluster topology.
+#
+# Usage: kind create cluster --name autopilot --config deploy/kind-config.yaml
+# =============================================================================
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+
+nodes:
+  # --- Control Plane ---
+  # Runs the K8s API server, etcd, scheduler, and controller manager.
+  # extraPortMappings forward host ports into the container so you can
+  # reach NodePort services from your local machine.
+  - role: control-plane
+    extraPortMappings:
+      # HTTP NodePort — access services on localhost:30080
+      - containerPort: 30080
+        hostPort: 30080
+        protocol: TCP
+      # HTTPS NodePort — access services on localhost:30443
+      - containerPort: 30443
+        hostPort: 30443
+        protocol: TCP
+
+  # --- Worker Nodes ---
+  # Workers run workload pods. Two workers give us enough capacity
+  # to demonstrate scheduling, failover, and scaling behavior.
+  - role: worker
+  - role: worker

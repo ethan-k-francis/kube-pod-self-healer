@@ -1,0 +1,87 @@
+# =============================================================================
+# Health Agent Deployment
+#
+# Runs the Go health agent as a single-replica Deployment. The agent watches
+# pods for failures and forwards events to the remediation service.
+#
+# Key design decisions:
+#   - Single replica: only one agent should watch at a time to avoid duplicate
+#     events. For HA, you'd use leader election (client-go has built-in support).
+#   - Runs with the health-agent ServiceAccount for RBAC permissions.
+#   - All configuration via environment variables (12-factor app).
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: health-agent
+  namespace: autopilot
+  labels:
+    app: health-agent
+    app.kubernetes.io/part-of: infra-autopilot
+    app.kubernetes.io/component: agent
+spec:
+  # Single replica — the agent uses informers which are singleton by design.
+  # Running multiple agents would create duplicate events.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: health-agent
+  template:
+    metadata:
+      labels:
+        app: health-agent
+        app.kubernetes.io/part-of: infra-autopilot
+    spec:
+      # Use the dedicated service account with RBAC permissions
+      serviceAccountName: health-agent
+
+      containers:
+        - name: agent
+          image: infra-autopilot/agent:latest
+          # Never pull from registry — we load images directly into Kind
+          imagePullPolicy: Never
+
+          env:
+            # Watch only the autopilot namespace. Set to "" for all namespaces.
+            - name: NAMESPACE
+              value: "autopilot"
+
+            # How often the informer resyncs (belt-and-suspenders for missed events)
+            - name: CHECK_INTERVAL
+              value: "30s"
+
+            # Internal K8s service DNS name for the remediation service.
+            # Kubernetes DNS resolves this to the ClusterIP of the Service.
+            - name: REMEDIATION_URL
+              value: "http://remediation-service.autopilot.svc.cluster.local:8000"
+
+            # Webhook URL for notifications (set to your Slack/Discord webhook)
+            # Leave empty to disable notifications
+            - name: WEBHOOK_URL
+              value: ""
+
+            - name: LOG_LEVEL
+              value: "info"
+
+          resources:
+            # The agent is lightweight — informers use minimal CPU and the
+            # local cache is bounded by the number of pods in the namespace
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+
+          # Liveness probe — restart the agent if it becomes unresponsive.
+          # Since the agent doesn't serve HTTP, we use a simple process check.
+          livenessProbe:
+            exec:
+              command: ["test", "-f", "/proc/1/status"]
+            initialDelaySeconds: 10
+            periodSeconds: 30
+
+      # Prefer scheduling on worker nodes, not the control plane.
+      # The agent is not critical enough to warrant control-plane scheduling.
+      tolerations: []
