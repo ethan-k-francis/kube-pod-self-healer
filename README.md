@@ -98,6 +98,8 @@ Argo CD handles **deployment and drift from Git**. Kube Pod Self-Healer handles 
 
 ## Quick start
 
+### On your laptop (already cloned)
+
 ```bash
 # 1. Create a local Kubernetes (K8s) cluster — Kind (Kubernetes IN Docker) runs K8s inside Docker
 make cluster-up
@@ -111,6 +113,26 @@ make demo
 # 4. Tear down
 make cluster-down
 ```
+
+### On a remote Linux host (e.g. homelab VM)
+
+Most lab VMs do **not** have a GitHub SSH key. Use **HTTPS**, not `git@github.com`:
+
+```bash
+ssh your-host
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/ethan-k-francis/kube-pod-self-healer/main/scripts/remote-setup.sh)"
+```
+
+Or clone manually, then deploy:
+
+```bash
+git clone https://github.com/ethan-k-francis/kube-pod-self-healer.git
+cd kube-pod-self-healer
+make cluster-up && make deploy
+make status
+```
+
+If `git clone git@github.com:...` fails with `Permission denied (publickey)`, that is expected — switch to the HTTPS URL above.
 
 ---
 
