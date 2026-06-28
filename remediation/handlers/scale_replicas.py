@@ -34,12 +34,12 @@ def scale_replicas(
 ) -> tuple[bool, str]:
     """
     Scale a Deployment up by the given increment to add capacity.
-    
+
     Args:
         deployment_name: Name of the Deployment to scale
         namespace: Kubernetes namespace
         scale_increment: Number of replicas to add (default: 1)
-    
+
     Returns:
         Tuple of (success, message) describing the outcome
     """
@@ -87,7 +87,9 @@ def scale_replicas(
         # will create new pods to match the desired count.
         logger.info(
             "scaling %s: %d -> %d replicas",
-            deploy_key, current_replicas, desired_replicas,
+            deploy_key,
+            current_replicas,
+            desired_replicas,
         )
 
         # Use a strategic merge patch — only modify the replica count,

@@ -40,12 +40,12 @@ def restart_pod(
 ) -> tuple[bool, str]:
     """
     Delete a pod to trigger a fresh restart by the ReplicaSet controller.
-    
+
     Args:
         pod_name: Name of the pod to restart
         namespace: Kubernetes namespace
         restart_count: Current restart count (used for backoff decisions)
-    
+
     Returns:
         Tuple of (success, message) describing the outcome
     """
@@ -76,7 +76,12 @@ def restart_pod(
         # Delete the pod. The default grace period (30s) gives the container
         # time to handle SIGTERM and shut down cleanly. For crashlooping pods,
         # this grace period is usually irrelevant since the process is already dead.
-        logger.info("deleting pod %s in namespace %s (restart_count=%d)", pod_name, namespace, restart_count)
+        logger.info(
+            "deleting pod %s in namespace %s (restart_count=%d)",
+            pod_name,
+            namespace,
+            restart_count,
+        )
         v1.delete_namespaced_pod(
             name=pod_name,
             namespace=namespace,

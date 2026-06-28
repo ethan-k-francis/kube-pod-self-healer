@@ -26,8 +26,9 @@ logger = logging.getLogger("remediation.clear_cache")
 # Default command to run inside the container. In a production system, this
 # would be configurable per-deployment via annotations or a config map.
 DEFAULT_CACHE_CLEAR_CMD = [
-    "/bin/sh", "-c",
-    "rm -rf /tmp/cache/* 2>/dev/null; echo 'cache cleared'"
+    "/bin/sh",
+    "-c",
+    "rm -rf /tmp/cache/* 2>/dev/null; echo 'cache cleared'",
 ]
 
 
@@ -39,12 +40,12 @@ def clear_cache(
     """
     Exec into the pod to clear cached state. Falls back to pod deletion
     if the exec fails.
-    
+
     Args:
         pod_name: Name of the target pod
         namespace: Kubernetes namespace
         container_name: Specific container to exec into
-    
+
     Returns:
         Tuple of (success, message) describing the outcome
     """
@@ -64,7 +65,8 @@ def clear_cache(
         # function handles the WebSocket upgrade that the exec API requires.
         logger.info(
             "attempting cache clear via exec: pod=%s container=%s",
-            pod_key, container_name,
+            pod_key,
+            container_name,
         )
 
         try:
@@ -92,7 +94,9 @@ def clear_cache(
             # the image might not have /bin/sh. Fall back to pod deletion.
             logger.warning(
                 "exec failed for %s/%s, falling back to pod restart: %s",
-                pod_key, container_name, exec_err,
+                pod_key,
+                container_name,
+                exec_err,
             )
             return _fallback_restart(v1, pod_name, namespace)
 

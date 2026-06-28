@@ -7,7 +7,7 @@ specific remediation strategy (restart, scale, cache-clear).
 
 Architecture:
     Go Agent -> POST /remediate -> Router -> Handler -> K8s API
-    
+
 The service also exposes:
     GET /health  — liveness/readiness probe endpoint
     GET /history — recent remediation actions for observability
@@ -19,7 +19,7 @@ from collections import deque
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 from handlers.restart_pod import restart_pod
@@ -60,7 +60,8 @@ class RemediationEvent(BaseModel):
     event_id: str = Field(..., description="Unique event ID for tracking")
     timestamp: str = Field(..., description="ISO 8601 timestamp of detection")
     failure_type: str = Field(
-        ..., description="Type: CrashLoopBackOff, OOMKilled, ProbeFailure, ImagePullBackOff"
+        ...,
+        description="Type: CrashLoopBackOff, OOMKilled, ProbeFailure, ImagePullBackOff",
     )
     pod_name: str = Field(..., description="Name of the failing pod")
     namespace: str = Field(..., description="Kubernetes namespace")
@@ -117,7 +118,7 @@ async def remediate(event: RemediationEvent) -> RemediationResult:
     """
     Main remediation endpoint. Receives a failure event, determines the
     appropriate action, executes it, and returns the result.
-    
+
     Remediation strategy:
     - CrashLoopBackOff with low restarts -> restart pod
     - CrashLoopBackOff with high restarts -> scale up deployment
@@ -193,7 +194,9 @@ def _execute_action(action: str, event: RemediationEvent) -> RemediationResult:
     except Exception as exc:
         success = False
         message = f"handler exception: {exc}"
-        logger.exception("remediation failed for %s/%s", event.namespace, event.pod_name)
+        logger.exception(
+            "remediation failed for %s/%s", event.namespace, event.pod_name
+        )
 
     return RemediationResult(
         event_id=event.event_id,

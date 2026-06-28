@@ -3,7 +3,7 @@
 **Self-healing Kubernetes cluster with automated remediation**
 
 [![CI](https://github.com/ethan-k-francis/infra-autopilot/actions/workflows/ci.yml/badge.svg)](https://github.com/ethan-k-francis/infra-autopilot/actions/workflows/ci.yml)
-[![Go](https://img.shields.io/badge/Go-1.23-00ADD8?logo=go)](https://go.dev)
+[![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go)](https://go.dev)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)](https://python.org)
 [![Terraform](https://img.shields.io/badge/Terraform-1.9+-7B42BC?logo=terraform)](https://terraform.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
