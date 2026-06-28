@@ -1,47 +1,48 @@
-# Infra Autopilot — Operational Runbook
+# Infra Autopilot — Operator Guide
 
-This runbook covers deployment, operation, extension, and troubleshooting of the
-Infra Autopilot self-healing system.
+Step-by-step instructions for deploying, extending, and troubleshooting the self-healing system.
+
+**New to Kubernetes (K8s)?** Read the [main README](../README.md) first for the big picture. This guide assumes you're running the local Kind (Kubernetes IN Docker) cluster from the Makefile.
 
 ---
 
 ## Table of Contents
 
 1. [Deploying the System](#deploying-the-system)
-2. [Adding New Remediation Handlers](#adding-new-remediation-handlers)
-3. [Configuring Alert Webhooks](#configuring-alert-webhooks)
-4. [Monitoring and Observability](#monitoring-and-observability)
+2. [Adding New Fix Handlers](#adding-new-fix-handlers)
+3. [Setting Up Alert Notifications](#setting-up-alert-notifications)
+4. [Checking Logs and History](#checking-logs-and-history)
 5. [Troubleshooting](#troubleshooting)
 
 ---
 
 ## Deploying the System
 
-### Prerequisites
+### What you need installed
 
-- [Docker](https://docs.docker.com/get-docker/) (for Kind and image builds)
-- [Kind](https://kind.sigs.k8s.io/docs/user/quick-start/) (Kubernetes IN Docker)
-- [kubectl](https://kubernetes.io/docs/tasks/tools/) (Kubernetes CLI)
-- [Go 1.23+](https://go.dev/dl/) (for building the agent)
-- [Python 3.12+](https://python.org) (for the remediation service)
+| Tool | Purpose |
+|---|---|
+| [Docker](https://docs.docker.com/get-docker/) | Runs Kind and builds container images |
+| [Kind](https://kind.sigs.k8s.io/docs/user/quick-start/) | Local Kubernetes (K8s) cluster inside Docker |
+| [kubectl](https://kubernetes.io/docs/tasks/tools/) | Command-line tool to talk to Kubernetes (K8s) |
+| [Go 1.23+](https://go.dev/dl/) | Build the health agent |
+| [Python 3.12+](https://python.org) | Run the remediation service locally (optional) |
 
-### Step 1: Create the Cluster
+### Step 1: Create the cluster
 
 ```bash
 make cluster-up
 ```
 
-This creates a Kind cluster named `autopilot` with 1 control-plane node and
-2 worker nodes. Port mappings (30080, 30443) are configured for NodePort access.
+Creates a cluster named `autopilot` with 1 control-plane node and 2 worker nodes.
 
-### Step 2: Build and Deploy
+### Step 2: Build and deploy
 
 ```bash
 make deploy
 ```
 
-This builds both container images, loads them into Kind, and applies all
-Kubernetes manifests (namespace, RBAC, agent deployment, remediation deployment).
+Builds both container images, loads them into Kind, and applies Kubernetes (K8s) manifests (namespace, Role-Based Access Control (RBAC) permissions, agent, remediation service).
 
 ### Step 3: Verify
 
@@ -49,16 +50,15 @@ Kubernetes manifests (namespace, RBAC, agent deployment, remediation deployment)
 make status
 ```
 
-You should see the `health-agent` and `remediation-service` pods in `Running` state.
+Both `health-agent` and `remediation-service` pods should show `Running`.
 
-### Step 4: Demo
+### Step 4: Run the demo
 
 ```bash
 make demo
 ```
 
-This deploys deliberately broken workloads (CrashLoopBackOff, probe failures)
-and tails the agent logs so you can watch the detection and remediation in real time.
+Deploys intentionally broken workloads and tails agent logs so you can watch detection and auto-fix in real time.
 
 ### Teardown
 
@@ -68,28 +68,25 @@ make cluster-down
 
 ---
 
-## Adding New Remediation Handlers
+## Adding New Fix Handlers
 
-Handlers live in `remediation/handlers/`. Each handler is a Python module that
-implements a single function.
+Handlers live in `remediation/handlers/`. Each handler is one Python function that performs a single fix action.
 
-### Handler Interface
+### Handler contract
 
-Every handler function must:
+Every handler must:
+
 1. Accept the parameters it needs (pod name, namespace, etc.)
-2. Return a tuple of `(success: bool, message: str)`
-3. Handle exceptions internally (never let exceptions propagate)
+2. Return `(success: bool, message: str)`
+3. Catch its own exceptions — never crash the server
 
-### Step-by-Step
+### Example: add a "drain node" handler
 
-1. **Create the handler file:**
+**1. Create the handler file:**
 
 ```python
 # remediation/handlers/drain_node.py
-"""
-Drain Node Handler
-Cordons and drains the node when multiple pods on the same node are failing.
-"""
+"""Cordons and drains a node when multiple pods on it are failing."""
 import logging
 from kubernetes import client, config
 
@@ -102,31 +99,31 @@ def drain_node(node_name: str) -> tuple[bool, str]:
         config.load_kube_config()
 
     v1 = client.CoreV1Api()
-    # Implementation here...
+    # ... implementation ...
     return True, f"node {node_name} drained"
 ```
 
-2. **Register it in `handlers/__init__.py`:**
+**2. Register in `handlers/__init__.py`:**
 
 ```python
 from handlers.drain_node import drain_node
 __all__ = [..., "drain_node"]
 ```
 
-3. **Add routing in `remediation_server.py`:**
+**3. Map failure type to handler in `remediation_server.py`:**
 
 ```python
 REMEDIATION_MAP["NodeFailure"] = "drain_node"
 ```
 
-4. **Add the dispatch in `_execute_action()`:**
+**4. Add dispatch in `_execute_action()`:**
 
 ```python
 elif action == "drain_node":
     success, message = drain_node(node_name=event.node_name or "")
 ```
 
-5. **Add the corresponding failure type in the Go agent** (`agent/internal/watcher/events.go`):
+**5. Add the failure type in the Go agent** (`agent/internal/watcher/events.go`):
 
 ```go
 FailureNodeFailure FailureType = "NodeFailure"
@@ -134,29 +131,28 @@ FailureNodeFailure FailureType = "NodeFailure"
 
 ---
 
-## Configuring Alert Webhooks
+## Setting Up Alert Notifications
 
-The health agent sends JSON POST requests to a configurable webhook URL for both
-detection and remediation events.
+The health agent sends JavaScript Object Notation (JSON) Hypertext Transfer Protocol (HTTP) POST requests to a webhook URL when it detects failures and when fixes complete.
 
 ### Slack
 
 1. Create a [Slack Incoming Webhook](https://api.slack.com/messaging/webhooks)
-2. Set the `WEBHOOK_URL` environment variable:
+2. Set `WEBHOOK_URL` in the agent deployment:
 
 ```yaml
-# In deploy/manifests/agent-deployment.yaml
+# deploy/manifests/agent-deployment.yaml
 env:
   - name: WEBHOOK_URL
     value: "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXX"
 ```
 
-The agent sends a `text` field in the payload, which Slack renders as the message body.
+Slack reads the `text` field from the JSON (JavaScript Object Notation) body.
 
 ### Discord
 
-1. Create a Discord webhook in channel settings
-2. Append `/slack` to the webhook URL for Slack-compatible format:
+1. Create a webhook in your Discord channel settings
+2. Append `/slack` to the URL for Slack-compatible format:
 
 ```yaml
 env:
@@ -164,10 +160,9 @@ env:
     value: "https://discord.com/api/webhooks/000000/XXXX/slack"
 ```
 
-### Custom Endpoint
+### Custom endpoint
 
-Any HTTP endpoint that accepts `POST` with `Content-Type: application/json` will work.
-The payload includes:
+Any URL that accepts `POST` with JavaScript Object Notation (JSON) works. Example payload:
 
 ```json
 {
@@ -186,47 +181,47 @@ The payload includes:
 
 ---
 
-## Monitoring and Observability
+## Checking Logs and History
 
-### Agent Logs
+### Live logs
 
 ```bash
-make agent-logs          # Tail health agent logs
-make remediation-logs    # Tail remediation service logs
+make agent-logs          # Health agent
+make remediation-logs    # Remediation service
 ```
 
-### Remediation History
+### Recent fix history
 
-The remediation service exposes recent actions at `GET /history`:
+The remediation service exposes past actions at `GET /history`:
 
 ```bash
 kubectl port-forward -n autopilot svc/remediation-service 8000:8000
 curl http://localhost:8000/history | python -m json.tool
 ```
 
-### Pod Status
+### Pod overview
 
 ```bash
-make status    # Full overview: pods, services, events
+make status
 ```
 
-### Key Log Messages
+### Log messages to look for
 
-| Log | Meaning |
+| Log line | Meaning |
 |---|---|
-| `[watcher] detected CrashLoopBackOff` | Agent found a crashlooping pod |
-| `[remediation-client] sending event` | Agent is forwarding to remediation |
-| `[remediation-client] result: action=restart success=true` | Remediation succeeded |
-| `[webhook] notification sent` | Alert delivered to webhook |
+| `[watcher] detected CrashLoopBackOff` | Agent found a crash-looping pod |
+| `[remediation-client] sending event` | Agent forwarded event to fix service |
+| `[remediation-client] result: action=restart success=true` | Fix succeeded |
+| `[webhook] notification sent` | Alert delivered |
 | `[watcher] cache synced, watching` | Agent is healthy and watching |
 
 ---
 
 ## Troubleshooting
 
-### Agent pod is CrashLoopBackOff
+### Agent pod keeps crashing (CrashLoopBackOff)
 
-**Cause:** Usually a misconfigured RBAC or the remediation service isn't reachable.
+**Likely cause:** Wrong Role-Based Access Control (RBAC) permissions or remediation service unreachable.
 
 ```bash
 kubectl logs -n autopilot -l app=health-agent --previous
@@ -236,56 +231,55 @@ kubectl describe pod -n autopilot -l app=health-agent
 Check:
 - ServiceAccount exists: `kubectl get sa -n autopilot health-agent`
 - ClusterRoleBinding exists: `kubectl get clusterrolebinding health-agent`
-- Remediation service is up: `kubectl get pod -n autopilot -l app=remediation-service`
+- Remediation service is running: `kubectl get pod -n autopilot -l app=remediation-service`
 
 ### Remediation service returns 422
 
-**Cause:** The event payload doesn't match the Pydantic model. Check the Go agent's event JSON format matches the Python model fields.
+**Likely cause:** JSON from the Go agent doesn't match the Python event model (Pydantic validation).
 
 ```bash
 kubectl logs -n autopilot -l app=remediation-service
 ```
 
-### Events not being detected
+Compare field names in the agent's event struct vs. the Pydantic model in the remediation service.
 
-**Cause:** Informer cache hasn't synced, or the namespace filter is wrong.
+### Failures not being detected
+
+**Likely cause:** Agent hasn't finished syncing its cache, or namespace filter is wrong.
 
 Check:
-- Agent logs for "cache synced" message
+- Agent logs contain "cache synced"
 - `NAMESPACE` env var matches where failing pods run
-- Agent has `get/list/watch` permissions on pods
+- Agent has `get/list/watch` on pods
 
-### Remediation not taking effect
+### Fix runs but nothing changes
 
-**Cause:** RBAC permissions might be insufficient, or the remediation service can't reach the K8s API.
+**Likely cause:** Insufficient Role-Based Access Control (RBAC) permissions, or the remediation service can't reach the Kubernetes (K8s) API.
 
 ```bash
-# Test RBAC manually
 kubectl auth can-i delete pods -n autopilot --as=system:serviceaccount:autopilot:health-agent
 kubectl auth can-i patch deployments -n autopilot --as=system:serviceaccount:autopilot:health-agent
 ```
 
 ### Images not loading into Kind
 
-**Cause:** Image name mismatch between `docker build` and `kind load`.
+**Likely cause:** Image name in `docker build` doesn't match what's in the Deployment manifest.
 
 ```bash
 docker images | grep infra-autopilot
 kind load docker-image infra-autopilot/agent:latest --name autopilot
 ```
 
-The image tag in the Deployment manifest must exactly match the loaded image name.
-`imagePullPolicy: Never` is required to prevent Kind from trying to pull from a registry.
+The Deployment must use `imagePullPolicy: Never` so Kind uses the locally loaded image instead of pulling from a registry.
 
 ### Webhook notifications not arriving
 
 Check:
 - `WEBHOOK_URL` is set in the agent deployment
-- The URL is reachable from inside the cluster (pod DNS resolution works for external URLs)
-- Agent logs show `[webhook] notification sent` or error messages
+- URL is reachable from inside the cluster
+- Agent logs show `[webhook] notification sent` or an error
 
 ```bash
-# Test webhook connectivity from inside the cluster
 kubectl run -n autopilot test-curl --rm -i --restart=Never --image=curlimages/curl -- \
   curl -s -o /dev/null -w "%{http_code}" https://hooks.slack.com/services/YOUR/WEBHOOK/URL
 ```

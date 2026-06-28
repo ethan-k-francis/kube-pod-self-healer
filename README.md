@@ -1,41 +1,37 @@
 # Infra Autopilot
 
-**Self-healing Kubernetes cluster with automated remediation**
+**A self-healing Kubernetes demo — detect broken pods and fix common problems automatically**
 
-[![CI](https://github.com/ethan-k-francis/infra-autopilot/actions/workflows/ci.yml/badge.svg)](https://github.com/ethan-k-francis/infra-autopilot/actions/workflows/ci.yml)
-[![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go)](https://go.dev)
-[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)](https://python.org)
-[![Terraform](https://img.shields.io/badge/Terraform-1.9+-7B42BC?logo=terraform)](https://terraform.io)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+When apps run in **Kubernetes (K8s)**, containers live in **pods**. Pods crash, run out of memory, fail health checks, or can't pull their container image. Many of these failures have known fixes (restart the pod, scale up, clear a cache). This project watches for those patterns and applies fixes without waiting for a human.
+
+Think of it as a tireless operator that handles the boring, repetitive incidents so you can focus on the ones that need judgment.
 
 ---
 
-## Design Document
+## What you'll learn
 
-### Problem
-
-Manual incident response to pod failures creates toil — engineers are paged for
-CrashLoopBackOff, OOMKilled, and failed health checks that have known remediations.
-These are repetitive, well-understood failure modes that consume on-call time and
-delay resolution for issues that actually need human judgment.
-
-### Trade-offs
-
-| Decision | Rationale |
+| Term | Plain English |
 |---|---|
-| **Go for the health agent** | Go's goroutine model allows fan-out health checks across hundreds of pods concurrently with minimal memory. A single agent binary with no runtime dependencies simplifies deployment. |
-| **Python remediation scripts** | Remediation logic changes frequently and Python's ecosystem (kubernetes client, rich stdlib) makes it easy to extend. New handlers are a single file — no recompilation needed. |
-| **FastAPI for remediation API** | Async-capable, auto-generated OpenAPI docs, and lightweight enough for a sidecar service. |
-| **Kind for local dev** | Fully conformant K8s cluster that runs in Docker. Reproducible, disposable, and CI-friendly. |
-
-### Outcome
-
-MTTR reduced from manual 5-minute response to automated 30-second remediation.
-Known failure patterns are resolved before an engineer even sees the page.
+| **Kubernetes (K8s)** | System that runs and restarts containers across machines |
+| **Pod** | One or more containers that run together as a unit |
+| **CrashLoopBackOff** | Pod keeps crashing; Kubernetes (K8s) backs off between restart attempts |
+| **Out Of Memory Killed (OOMKilled)** | Pod killed because it used too much memory |
+| **Health probe** | Periodic "are you alive?" check Kubernetes (K8s) runs against your app |
+| **ImagePullBackOff** | Can't download the container image (wrong name, registry down) |
+| **Remediation** | Automated fix action (restart, scale, etc.) |
+| **Informer** | Efficient watcher that listens for pod status changes via the Kubernetes (K8s) API |
 
 ---
 
-## Architecture
+## The problem in plain English
+
+On-call engineers get paged for the same failures repeatedly: a pod crash-loops, memory spikes, a bad deploy. The fix is often "delete the pod and let Kubernetes (K8s) recreate it" — work a script can do in seconds. This project automates those known fixes and notifies you via webhook (Slack, Discord, etc.) so you still have visibility.
+
+**Goal:** Turn a ~5 minute manual response into ~30 seconds of automated recovery for well-understood failures — reducing **Mean Time To Recovery (MTTR)**.
+
+---
+
+## How it works
 
 ```mermaid
 flowchart LR
@@ -56,76 +52,78 @@ flowchart LR
 ```
 
 **Flow:**
-1. The **Go Health Agent** uses Kubernetes informers to watch pod status across the cluster
-2. When a failure is detected (CrashLoopBackOff, OOMKilled, probe failure, ImagePullBackOff), it classifies the event
-3. The event is sent to the **Python Remediation Service** via HTTP
-4. The remediation service routes to the appropriate handler (restart, scale, cache-clear)
-5. Both detection and remediation results are reported to a configurable **webhook** endpoint
+
+1. **Go Health Agent** watches all pod status via the Kubernetes (K8s) API.
+2. When it sees a known failure type, it classifies the event.
+3. It sends the event to the **Python Remediation Service** over Hypertext Transfer Protocol (HTTP).
+4. The remediation service picks a handler: restart pod, scale deployment, etc.
+5. Both detection and fix results go to your **webhook** URL.
+
+Operational details: [docs/runbook.md](docs/runbook.md).
 
 ---
 
-## Quick Start
+## Quick start
 
 ```bash
-# 1. Create a local Kind cluster
+# 1. Create a local Kubernetes (K8s) cluster — Kind (Kubernetes IN Docker) runs K8s inside Docker
 make cluster-up
 
-# 2. Build and deploy everything
+# 2. Build images and deploy agent + remediation service
 make deploy
 
-# 3. Watch the system in action (deploys a crashloop demo pod)
+# 3. Deploy a deliberately broken pod and watch auto-fix
 make demo
 
-# 4. Tear down when done
+# 4. Tear down
 make cluster-down
 ```
 
 ---
 
-## Tech Stack
+## What's inside
 
-| Component | Technology | Purpose |
+| Piece | Technology | What it does |
 |---|---|---|
-| Health Agent | Go 1.23, client-go | Watches pod status via K8s informers |
-| Remediation | Python 3.12, FastAPI | Executes remediation actions |
-| Infrastructure | Terraform, Kind | Provisions local K8s clusters |
-| Containers | Docker | Packages agent and remediation service |
-| CI/CD | GitHub Actions | Lint, test, build, validate |
-| Manifests | Kubernetes YAML | Deploys workloads and RBAC |
+| Health agent | Go, client-go | Watches pods, detects failures |
+| Remediation | Python, FastAPI | Runs fix actions via the Kubernetes (K8s) API |
+| Local cluster | Kind + Terraform | Creates a disposable Kubernetes (K8s) cluster for learning |
+| Manifests | Kubernetes YAML | Deploys services with least-privilege Role-Based Access Control (RBAC) |
+| Continuous Integration (CI) | GitHub Actions | Lint, test, build on every push |
 
 ---
 
-## Structure
+## Project layout
 
 ```
 infra-autopilot/
 ├── agent/                    # Go health monitoring agent
-│   ├── cmd/agent/            # Entry point
-│   └── internal/
-│       ├── config/           # Configuration from env vars
-│       ├── watcher/          # Pod watcher using informers
-│       ├── remediation/      # HTTP client for remediation service
-│       └── webhook/          # Webhook notification client
-├── remediation/              # Python remediation service
-│   └── handlers/             # Pluggable remediation handlers
+├── remediation/              # Python remediation service + handlers
 ├── terraform/                # Kind cluster provisioning
-├── deploy/
-│   ├── kind-config.yaml      # Kind cluster configuration
-│   └── manifests/            # Kubernetes manifests
-├── .github/workflows/        # CI pipeline
-└── docs/                     # Operational runbook
+├── deploy/manifests/         # Kubernetes YAML
+├── docs/runbook.md           # Deploy, extend, troubleshoot
+└── Makefile
 ```
 
 ---
 
-## Future Enhancements
+## Design choices (for the curious)
 
-- **Prometheus metrics** — Expose remediation counts, MTTR histograms, and failure-type breakdowns
-- **Custom Resource Definitions** — Define remediation policies as K8s CRDs (`RemediationPolicy`)
-- **Machine learning anomaly detection** — Train a model on pod metrics to predict failures before they happen
-- **Multi-cluster support** — Federate health agents across clusters with a central control plane
-- **Runbook automation** — Integrate with PagerDuty/Opsgenie to auto-resolve incidents
-- **Chaos engineering** — Built-in fault injection to validate remediation handlers
+| Decision | Why |
+|---|---|
+| Go for the agent | Handles watching hundreds of pods concurrently with low memory |
+| Python for fixes | Easy to add new remediation handlers without recompiling |
+| Kind for local dev | Real Kubernetes (K8s) API, runs entirely on your laptop |
+| FastAPI for remediation API | Simple Hypertext Transfer Protocol (HTTP) service with auto-generated Application Programming Interface (API) docs |
+
+---
+
+## Ideas for extending this
+
+- Prometheus metrics for fix counts and Mean Time To Recovery (MTTR)
+- Policy objects — Custom Resource Definitions (CRDs) — to configure which fixes apply where
+- Multi-cluster support
+- Built-in chaos tests to validate handlers
 
 ---
 
