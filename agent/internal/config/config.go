@@ -51,7 +51,7 @@ func Load() (*Config, error) {
 
 	cfg := &Config{
 		Kubeconfig:     getEnv("KUBECONFIG", ""),
-		Namespace:      getEnv("NAMESPACE", "kube-remediator"),
+		Namespace:      getEnv("NAMESPACE", "kube-pod-self-healer"),
 		CheckInterval:  interval,
 		RemediationURL: getEnv("REMEDIATION_URL", "http://remediation-service:8000"),
 		WebhookURL:     getEnv("WEBHOOK_URL", ""),

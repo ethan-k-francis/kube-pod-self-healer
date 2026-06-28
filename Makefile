@@ -1,15 +1,15 @@
 # =============================================================================
-# Kube Remediator — Makefile (Full Version)
+# Kube Pod Self-Healer — Makefile (Full Version)
 # Top-level build, test, deployment, and operational automation.
 # =============================================================================
 
 # Cluster name used by Kind and Terraform
-CLUSTER_NAME ?= kube-remediator
-# Namespace where kube-remediator workloads run
-NAMESPACE ?= kube-remediator
+CLUSTER_NAME ?= kube-pod-self-healer
+# Namespace where kube-pod-self-healer workloads run
+NAMESPACE ?= kube-pod-self-healer
 # Container image tags
-AGENT_IMAGE ?= kube-remediator/agent:latest
-REMEDIATION_IMAGE ?= kube-remediator/remediation:latest
+AGENT_IMAGE ?= kube-pod-self-healer/agent:latest
+REMEDIATION_IMAGE ?= kube-pod-self-healer/remediation:latest
 
 # -----------------------------------------------------------------------------
 # Cluster lifecycle — create and destroy the local Kind cluster
@@ -104,12 +104,12 @@ remediation-logs-follow: ## Follow remediation logs (Ctrl+C to stop; exit code 1
 	kubectl logs -f -n $(NAMESPACE) -l app=remediation-service
 
 # -----------------------------------------------------------------------------
-# Status — show the current state of kube-remediator workloads
+# Status — show the current state of kube-pod-self-healer workloads
 # -----------------------------------------------------------------------------
 
 .PHONY: status
-status: ## Show pod health and status in the kube-remediator namespace
-	@echo "=== Kube Remediator Pods ==="
+status: ## Show pod health and status in the kube-pod-self-healer namespace
+	@echo "=== Kube Pod Self-Healer Pods ==="
 	kubectl get pods -n $(NAMESPACE) -o wide
 	@echo ""
 	@echo "=== Pod Health Summary ==="

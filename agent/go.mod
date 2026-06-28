@@ -1,4 +1,4 @@
-module github.com/ethan-k-francis/kube-remediator/agent
+module github.com/ethan-k-francis/kube-pod-self-healer/agent
 
 go 1.25.0
 

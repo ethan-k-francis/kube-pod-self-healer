@@ -4,7 +4,7 @@
 # Kind (Kubernetes IN Docker) runs a conformant K8s cluster using Docker
 # containers as "nodes". This config defines the cluster topology.
 #
-# Usage: kind create cluster --name kube-remediator --config deploy/kind-config.yaml
+# Usage: kind create cluster --name kube-pod-self-healer --config deploy/kind-config.yaml
 # =============================================================================
 
 kind: Cluster

@@ -1,5 +1,5 @@
 # =============================================================================
-# Kube Remediator — Terraform Outputs
+# Kube Pod Self-Healer — Terraform Outputs
 #
 # Outputs expose values from the Terraform state so they can be consumed by
 # scripts, CI pipelines, or other Terraform modules. After `terraform apply`,

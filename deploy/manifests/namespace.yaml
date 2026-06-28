@@ -1,16 +1,16 @@
 # =============================================================================
 # Autopilot Namespace
 #
-# All kube-remediator workloads (health agent, remediation service, demo pods)
+# All kube-pod-self-healer workloads (health agent, remediation service, demo pods)
 # run in this dedicated namespace. Namespaces provide resource isolation and
-# make it easy to clean up everything with `kubectl delete ns kube-remediator`.
+# make it easy to clean up everything with `kubectl delete ns kube-pod-self-healer`.
 # =============================================================================
 
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: kube-remediator
+  name: kube-pod-self-healer
   labels:
     # Labels make it easy to query and filter resources
-    app.kubernetes.io/part-of: kube-remediator
+    app.kubernetes.io/part-of: kube-pod-self-healer
     purpose: self-healing-demo

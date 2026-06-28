@@ -1,5 +1,5 @@
 # =============================================================================
-# Kube Remediator — Provider Configuration
+# Kube Pod Self-Healer — Provider Configuration
 #
 # Declares the Kind provider, which lets Terraform manage Kind clusters as
 # native resources. The tehcyx/kind provider wraps the Kind CLI into a

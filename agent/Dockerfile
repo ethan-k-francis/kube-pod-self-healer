@@ -1,5 +1,5 @@
 # =============================================================================
-# Kube Remediator — Health Agent Dockerfile
+# Kube Pod Self-Healer — Health Agent Dockerfile
 #
 # Multi-stage build for the Go health monitoring agent:
 #   Stage 1 (builder): compiles the Go binary with all k8s client-go deps

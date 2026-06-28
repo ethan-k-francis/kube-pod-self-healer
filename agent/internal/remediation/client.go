@@ -18,7 +18,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ethan-k-francis/kube-remediator/agent/internal/watcher"
+	"github.com/ethan-k-francis/kube-pod-self-healer/agent/internal/watcher"
 )
 
 // Result is the response from the remediation service after processing an event.
