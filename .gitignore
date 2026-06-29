@@ -66,6 +66,4 @@ Thumbs.db
 .env
 .env.*
 !.env.example
-AGENTS.md
-.cursor/
 agent/Dockerfile.prebuilt
