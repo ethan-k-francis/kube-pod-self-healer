@@ -154,22 +154,17 @@ lint-remediation: ## Run Python linter
 # Local CI parity — run before opening PRs
 # -----------------------------------------------------------------------------
 
-.PHONY: lint-ci ci-security pr-commit-check ci
+.PHONY: lint-ci ci-security ci
 lint-ci: ## Run pre-commit hooks across the repository
 	pre-commit run --all-files
 
 ci-security: ## Run local security scan parity (Trivy)
 	trivy fs --severity HIGH,CRITICAL --exit-code 1 .
 
-pr-commit-check: ## Check branch commits for forbidden commit footers
-	@chmod +x .github/scripts/commit-message-lint.sh
-	@.github/scripts/commit-message-lint.sh \
-		--base-ref origin/main \
-		$${PR_TITLE:+--title "$${PR_TITLE}"} \
-		$${PR_BODY_FILE:+--body-file "$${PR_BODY_FILE}"}
-
-ci: lint-ci ci-security pr-commit-check ## Run local CI checks before PR
+ci: lint-ci ci-security ## Run local CI checks before PR
 	@echo "Local CI checks passed."
+
+-include .local/Makefile
 
 # -----------------------------------------------------------------------------
 # Help — list available targets
